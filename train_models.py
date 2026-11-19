@@ -1,7 +1,13 @@
 from pathlib import Path
+import os
+import shutil
 import warnings
 
+os.environ["MPLBACKEND"] = "Agg"
+
 import joblib
+import matplotlib
+matplotlib.use("Agg", force=True)
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -35,6 +41,20 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 BASE = Path(__file__).resolve().parent
 OUT = BASE / "results"
+HANDOFF_DIR = BASE / "fileignored"
+DATA_FILES = (
+    "Untitled form.csv",
+    "social_media_buying.csv",
+    "Cleaned dataset.xlsx",
+)
+HANDOFF_FILES = [
+    "social_media_buying_model_comparison.csv",
+    "social_media_repeated_split_results.csv",
+    "source_indicator_ablation.csv",
+    "target_distribution.csv",
+    "leave_one_source_out_results.csv",
+    "leakage_check_report.csv",
+]
 RANDOM_STATE = 42
 TARGET = "impulse_target"
 SURVEY_NAME = "google_forms_survey"
@@ -112,21 +132,57 @@ def _normalize_headers(df):
 
 
 def _source_frames():
-    survey_path = BASE / "Untitled form.csv"
-    social_path = BASE / "social_media_buying.csv"
-    psych_path = BASE / "Cleaned dataset.xlsx"
-    for path in (survey_path, social_path, psych_path):
-        if not path.exists():
-            raise FileNotFoundError(f"Required dataset was not found: {path}")
+    input_directory = next(
+        (
+            directory
+            for directory in (OUT, BASE)
+            if all((directory / filename).is_file() for filename in DATA_FILES)
+        ),
+        None,
+    )
+    if input_directory is None:
+        expected_paths = [
+            str(directory / filename)
+            for directory in (OUT, BASE)
+            for filename in DATA_FILES
+        ]
+        raise FileNotFoundError(
+            "Could not find all three input datasets together. Place them in "
+            f"{OUT} (recommended) or beside the script. Checked: "
+            + ", ".join(expected_paths)
+        )
 
-    survey = _normalize_headers(pd.read_csv(survey_path))
-    social = pd.read_csv(social_path)
-    psych = pd.read_excel(psych_path, sheet_name="Cleaned data")
+    survey = _normalize_headers(pd.read_csv(input_directory / DATA_FILES[0]))
+    social = pd.read_csv(input_directory / DATA_FILES[1])
+    psych = pd.read_excel(
+        input_directory / DATA_FILES[2], sheet_name="Cleaned data"
+    )
     return {
         SURVEY_NAME: survey,
         SOCIAL_NAME: social,
         PSYCH_NAME: psych,
     }
+
+
+def _copy_handoff_files():
+    HANDOFF_DIR.mkdir(parents=True, exist_ok=True)
+    copied = []
+    for filename in HANDOFF_FILES:
+        source = OUT / filename
+        if not source.is_file():
+            raise FileNotFoundError(
+                f"Expected handoff result was not generated: {source}"
+            )
+        destination = HANDOFF_DIR / filename
+        if source.resolve() == destination.resolve():
+            raise ValueError(f"Handoff destination must differ from source: {source}")
+        shutil.copy2(source, destination)
+        if source.stat().st_size != destination.stat().st_size:
+            raise OSError(
+                f"Copied handoff file failed size verification: {destination}"
+            )
+        copied.append(destination)
+    return copied
 
 
 def _coerce_target(raw_target, source):
@@ -532,7 +588,7 @@ def _candidate_estimators():
         min_samples_leaf=3,
         class_weight="balanced",
         random_state=RANDOM_STATE,
-        n_jobs=-1,
+        n_jobs=1,
     )
     boosting = GradientBoostingClassifier(random_state=RANDOM_STATE)
     return {
@@ -544,7 +600,7 @@ def _candidate_estimators():
             min_samples_leaf=2,
             class_weight="balanced",
             random_state=RANDOM_STATE,
-            n_jobs=-1,
+            n_jobs=1,
         ),
         "Soft Voting Classifier": VotingClassifier(
             estimators=[
@@ -1205,6 +1261,18 @@ def main():
         frames[SOCIAL_NAME], social_target
     )
     social_results.to_csv(OUT / "social_media_leakage_sensitivity.csv", index=False)
+    social_model_comparison = social_results.loc[
+        social_results["feature_set"] == "all_predictors"
+    ].drop(
+        columns=[
+            "feature_set",
+            "excluded_features",
+            "test_accuracy_delta_vs_all_predictors",
+        ]
+    )
+    social_model_comparison.to_csv(
+        OUT / "social_media_buying_model_comparison.csv", index=False
+    )
     repeated_splits.to_csv(
         OUT / "social_media_repeated_split_results.csv", index=False
     )
@@ -1237,6 +1305,7 @@ def main():
         "final_model_report.txt",
         "source_indicator_ablation.csv",
         "social_media_leakage_sensitivity.csv",
+        "social_media_buying_model_comparison.csv",
         "social_media_repeated_split_results.csv",
     ]
     experiment["comparison"].to_csv(
@@ -1250,11 +1319,15 @@ def main():
     if missing_outputs:
         raise RuntimeError(f"Expected output files were not created: {missing_outputs}")
 
+    copied_handoff_files = _copy_handoff_files()
     print("\nSelected extended model:", experiment["selected_name"])
     print("Held-out metrics:", experiment["selected_metrics"])
     print("\nSource test performance:\n", experiment["source_performance"].to_string(index=False))
     print("\nSocial Media audit:", social_audit)
     print("Loaded saved model and generated sample predictions:", sample_predictions)
+    print("Copied handoff files:")
+    for path in copied_handoff_files:
+        print(f"  {path}")
     print(f"All requested outputs saved to {OUT}")
 
 
