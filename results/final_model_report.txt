@@ -1,0 +1,168 @@
+Impulse Buying Behaviour - Final Model and Leakage Audit
+==================================================================
+
+Dataset accounting
+  Survey source rows: 108
+  Social source rows: 500
+  Psychological source rows: 589
+  Total rows before target validation: 1197
+  Rows retained with valid target: 1197
+  Rows removed for missing/invalid target: 0
+  Features in extended dataset: 48 (including source_dataset)
+
+Target definitions
+  Google Forms: Yes=0; No=1; considering a similar purchase=1.
+  Social Media: impulse_purchase must be 0 or 1.
+  Psychological Drivers: all IB1-IB4 required; mean >= 4 gives 1, otherwise 0.
+
+Feature validity and harmonization
+  Excluded survey Timestamp, the survey target, and the post-purchase unnecessary-purchase item.
+  Excluded social impulse_purchase target from predictors. No observed social predictor was an exact binary target copy.
+  Excluded psychological IB1-IB4 (target construction) and IG1-IG4 (post-purchase gratification).
+  Psychological demographic codes lack a codebook and were treated as categorical, not continuous.
+  Extended source-specific features retained:
+    google_forms_survey: survey_age_group, survey_purchase_frequency, survey_channel, survey_spend_amount, survey_discount_level, survey_influence_score, survey_review_influence_score, age_group
+    social_media_buying: age_group, age, gender, education_level, monthly_income, time_spent_on_social_media, platform_most_used, follow_influencers, ad_frequency, social_media_ads_clicks, perceived_discount, emotional_trigger_score, peer_influence_score, online_purchase_frequency
+    psychological_drivers: GENDER, AGEGRP, EDU, INCOME, PLATFORM, BUYFREQ, PRODGRP, PE1, PE2, PE3, PE4, SS1, SS2, SS3, SS4, SI1, SI2, SI3, SI4, PSV1, PSV2, PSV3, PSV4, FOMO1, FOMO2, FOMO3
+  Common-feature experiment: not run. A common-feature experiment was not run. The available source files do not define a fully comparable behavioral predictor set across all three questionnaires. Google Forms age group uses readable age bands and social_media_buying contains age in years (these two can be aligned), but the psychological workbook uses numeric AGEGRP codes with no codebook. BUYFREQ is also an undocumented category code, while the social dataset's online_purchase_frequency is a count with no stated time window; the survey uses verbal frequency categories. Retail channel, social platform, and coded psychological PLATFORM are not interchangeable. Survey discount level, perceived_discount, and the psychological questionnaire do not have a documented common scale. Mapping any of these across all three sources would add unsupported assumptions. The extended-feature experiment retains valid source specific measures with missing values for other sources and uses training-fold imputation. This estimates performance on a mixture of these datasets, not guaranteed cross-source generalization.
+
+Model selection and validation
+  One stratified 80:20 split, random_state=42. All preprocessing is inside a Pipeline and fitted only on each training fold/split.
+  Five-fold StratifiedKFold on training rows only. Selected by mean cross-validation accuracy only; test scores did not select the model.
+  Selected model: Soft Voting Classifier
+
+Five-model results (cross-validation accuracy mean +/- std):
+  Soft Voting Classifier: 0.8287 +/- 0.0343; held-out accuracy 0.7958
+  Logistic Regression: 0.8109 +/- 0.0250; held-out accuracy 0.7625
+  Random Forest: 0.7900 +/- 0.0430; held-out accuracy 0.7667
+  Gradient Boosting: 0.7879 +/- 0.0217; held-out accuracy 0.7833
+  Extra Trees: 0.7858 +/- 0.0218; held-out accuracy 0.7500
+
+Selected model held-out metrics
+  Accuracy: 0.7958
+  Balanced accuracy: 0.7825
+  Precision: 0.6966
+  Recall: 0.7381
+  F1-score: 0.7168
+  ROC-AUC: 0.8594
+
+Selected model test performance by source (separate source subgroups from the same random test split):
+  google_forms_survey: n=29, class 0=11, class 1=18, accuracy=0.5517, balanced accuracy=0.4444, F1=0.7111
+  social_media_buying: n=87, class 0=60, class 1=27, accuracy=1.0000, balanced accuracy=1.0000, F1=1.0000
+  psychological_drivers: n=124, class 0=85, class 1=39, accuracy=0.7097, balanced accuracy=0.6495, F1=0.5135
+
+Source indicator and Social Media accuracy investigation
+  Paired CV accuracy changes from including source_dataset were Logistic Regression -0.0000; Random Forest -0.0021; Gradient Boosting +0.0010; Extra Trees +0.0052; Soft Voting Classifier +0.0010. The changes are small in this run (largest absolute change 0.0052), so source identity alone did not materially change aggregate CV accuracy.
+  Social rows=500, class 0=330, class 1=170.
+  Social seed-42 test rows=100, class 0=66, class 1=34.
+  Standalone Social Media model selected by CV: Logistic Regression; test accuracy=0.9700.
+  Across 10 fixed-model, repeated stratified 80:20 splits, accuracy range=0.9400-0.9900 (mean=0.9640).
+  After removing the four highest association sensitivity features, selected algorithm=Soft Voting Classifier; its test accuracy=0.5900.
+  Sensitivity features are not declared leaked: they were chosen for ablation because they showed the strongest individual associations and because their measurement timing is undocumented.
+  Perfect small-group associations found by the Social Media screen: ad_frequency group 3 (n=5). These are association flags, not proof of target encoding; the strongest reported group has only five records.
+  No exact duplicates or conflicting duplicate predictor groups were observed in the Social Media data. A random split of unique rows has no exact train/test row overlap. Pipeline preprocessing is fitted within each training fold.
+  No questionnaire, codebook, or data-generation script was available to establish when social predictors were measured or whether the target was generated from them. Therefore, 100% accuracy on any one split is not proof of leakage or of genuine generalization; inspect the leakage_check_report.csv associations and repeated-split results.
+
+Limitations
+  The target definitions differ across sources and are not guaranteed to measure exactly the same construct.
+  Most source-specific columns are structurally missing outside their originating dataset; a model may learn source-specific patterns. Compare source_indicator_ablation.csv and unified_source_test_performance.csv.
+  Small survey subgroup test counts make its metrics noisy.
+  Cross-source generalization was not evaluated because comparable predictors cannot be defined from the available questionnaire documentation.
+  Results are predictive associations, not causal evidence.
+
+Target counts by source:
+  google_forms_survey: 108 valid; 0 removed; class 0=41, class 1=67
+  social_media_buying: 500 valid; 0 removed; class 0=330, class 1=170
+  psychological_drivers: 589 valid; 0 removed; class 0=406, class 1=183
+
+Independent audit addendum
+==========================
+
+Social Media target provenance
+  The social_media_buying.csv file supplies impulse_purchase as a pre-existing
+  binary column (330 zeros and 170 ones). The available project contains no
+  questionnaire, codebook, or data-generation code defining how that label was
+  created. Its original generation rule therefore cannot be established here.
+  Predictor associations do not reveal the label-generation procedure.
+
+Social Media association and sensitivity findings
+  The four predictors removed together for the sensitivity analysis were:
+    emotional_trigger_score: Pearson r=0.4559; mean 4.75 for target 0 and
+      7.46 for target 1.
+    ad_frequency: Pearson r=0.4031; mean 8.94 for target 0 and 11.60 for
+      target 1.
+    peer_influence_score: Pearson r=0.3734; mean 4.94 for target 0 and
+      7.16 for target 1.
+    social_media_ads_clicks: Pearson r=0.2753; mean 4.53 for target 0 and
+      5.76 for target 1.
+  These features may be predictive because they measure advertising exposure,
+  emotional response, and peer influence associated with impulse purchasing.
+  They may also be problematic if measured after purchase or if used in the
+  procedure that created impulse_purchase. The project does not establish
+  measurement timing or target-generation provenance, so neither leakage nor
+  its absence is proven. In the fixed seed-42 split, removing the four
+  together changed the CV-selected model's accuracy from 98% to 59% (CV
+  accuracy for that reduced-feature model was 57.25%). This joint ablation
+  does not identify which feature causes the change. The four-feature set
+  was flagged after examining target associations in the full Social Media
+  data; therefore, the 59% held-out ablation score is exploratory and is not
+  an independent unbiased estimate. It does not alter selection or scoring
+  of the main unified model.
+
+Combined held-out split and confusion matrices
+  The stratified 80:20 held-out set contains 240 records. The selected model
+  correctly classified 191/240 (79.58%). With rows=true [0,1] and
+  columns=predicted [0,1], its confusion matrix is [[129,27],[22,62]].
+  The source subsets are 29 + 87 + 124 = 240 records, with source confusion
+  matrices:
+    Google Forms: [[0,11],[2,16]].
+    Social Media: [[60,0],[0,27]] (60 class-0 and 27 class-1 records).
+    Psychological Drivers: [[69,16],[20,19]].
+  The Social Media subset is mathematically consistent with 100% accuracy:
+  all 87 labels were predicted correctly. It is a small, single held-out
+  subset from this dataset mixture and is not proof of leakage-free
+  generalization or future performance. The source labels' provenance remains
+  unknown.
+
+Repeated Social Media splits
+  Logistic Regression was selected before the repeat loop by five-fold CV
+  accuracy on the seed-42 Social Media training partition only. The repeat
+  loop then used this same algorithm and hyperparameters for every seed; it
+  did not select a model or tune using any repeat's test partition. For each
+  of ten seeds (1, 7, 21, 42, 84, 100, 123, 2024, 2025, 2026), a fresh
+  stratified 80:20 split was made, the fixed Logistic Regression pipeline was
+  fitted on that split's training rows, and accuracy was measured on its
+  100 test rows. The reported 96.4% is the arithmetic mean of
+  [95%, 96%, 94%, 97%, 94%, 99%, 98%, 97%, 97%, 97%]:
+  (0.95+0.96+0.94+0.97+0.94+0.99+0.98+0.97+0.97+0.97)/10 = 0.964.
+  These overlapping resamples are a stability check, not ten independent
+  test sets or a replacement for the held-out result.
+
+Psychological Drivers errors
+  The held-out subset contains 85 class-0 and 39 class-1 records. Its
+  confusion matrix [[69,16],[20,19]] means 19/39 impulse-positive records
+  were detected (recall=48.72%) and 19 of 35 positive predictions were
+  correct (precision=54.29%). The positive-class F1 is
+  2*19/(2*19+16+20) = 51.35%. The model misses 20 positives and falsely
+  labels 16 negatives as positive; the minority class and small subgroup
+  test size contribute to the uncertainty. Accuracy is 88/124 = 70.97%.
+
+Pipeline and artifact checks
+  The saved classifier is a soft VotingClassifier with LogisticRegression,
+  RandomForestClassifier, and GradientBoostingClassifier constituents.
+  ColumnTransformer imputers, scaler, and one-hot encoder are inside the
+  Pipeline; cross_validate clones and fits that pipeline separately within
+  each training fold, and the final fitted pipeline is trained on the 80%
+  training split only. The held-out set is used for metrics, not model
+  selection.
+  The independent audit reloaded unified_best_model.joblib and successfully
+  predicted a source-formatted record with the complete 48-column pipeline
+  schema. The CSV comparison and plotted five-model test accuracies agree;
+  the unified confusion-matrix plot's voting panel agrees with [[129,27],
+  [22,62]]. The per-source test counts and metrics agree with their
+  respective confusion matrices.
+  The all-model-results CSV, per-dataset comparison CSVs, plots, and models
+  named google_forms_survey_*, social_media_buying_*, and
+  psychological_drivers_* remain from the previous per-dataset workflow.
+  The current unified script does not generate them; they are legacy outputs,
+  not part of this final unified comparison.

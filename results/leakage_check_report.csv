@@ -1,0 +1,14 @@
+source_dataset,predictor,dtype,unique_values,target_correlation_or_binary_association,maximum_within_value_target_class_purity,purity_grouping,highest_purity_group,rows_in_highest_purity_group,exact_binary_target_copy,classification,duplicate_predictor_rows,duplicate_predictor_groups_with_conflicting_target
+social_media_buying,age,int64,42,0.009900153895778101,0.7551020408163265,numeric deciles,"(32.0, 37.0]",49,False,no high-support perfect relation observed; provenance/timing unknown,0,0
+social_media_buying,gender,str,3,,0.6666666666666667,observed category/value,Other,54,False,no high-support perfect relation observed; provenance/timing unknown,0,0
+social_media_buying,education_level,str,3,,0.6794871794871795,observed category/value,Graduate,234,False,no high-support perfect relation observed; provenance/timing unknown,0,0
+social_media_buying,monthly_income,int64,499,0.05640467421804866,0.8200000000000001,numeric deciles,"(21639.5, 28405.2]",50,False,no high-support perfect relation observed; provenance/timing unknown,0,0
+social_media_buying,time_spent_on_social_media,float64,56,0.039092609396973274,0.7142857142857143,numeric deciles,"(1.1, 1.6]",42,False,no high-support perfect relation observed; provenance/timing unknown,0,0
+social_media_buying,platform_most_used,str,5,,0.7333333333333334,observed category/value,Facebook,90,False,no high-support perfect relation observed; provenance/timing unknown,0,0
+social_media_buying,follow_influencers,int64,2,0.0840913789430075,0.7142857142857143,observed category/value,0,175,False,no high-support perfect relation observed; provenance/timing unknown,0,0
+social_media_buying,ad_frequency,int64,18,0.40310563513159187,1.0,observed category/value,3,5,False,perfect target separation for a group with >=5 rows,0,0
+social_media_buying,social_media_ads_clicks,int64,14,0.275279755840459,1.0,observed category/value,0,3,False,no high-support perfect relation observed; provenance/timing unknown,0,0
+social_media_buying,perceived_discount,int64,10,-0.03628886595742947,0.7758620689655172,observed category/value,7,58,False,no high-support perfect relation observed; provenance/timing unknown,0,0
+social_media_buying,emotional_trigger_score,int64,10,0.4559008086187573,0.9302325581395349,observed category/value,1,43,False,no high-support perfect relation observed; provenance/timing unknown,0,0
+social_media_buying,peer_influence_score,int64,10,0.37343454660706393,0.9285714285714286,observed category/value,2,42,False,no high-support perfect relation observed; provenance/timing unknown,0,0
+social_media_buying,online_purchase_frequency,int64,15,-0.014779401391925406,0.8055555555555556,observed category/value,6,36,False,no high-support perfect relation observed; provenance/timing unknown,0,0

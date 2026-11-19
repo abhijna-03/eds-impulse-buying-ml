@@ -1,0 +1,4 @@
+training_sources,test_source,status,reason
+,google_forms_survey,not performed,"Leave-one-source-out evaluation requires valid, comparable predictor definitions. No such three-source feature set can be established from the available codebooks/data."
+,social_media_buying,not performed,"Leave-one-source-out evaluation requires valid, comparable predictor definitions. No such three-source feature set can be established from the available codebooks/data."
+,psychological_drivers,not performed,"Leave-one-source-out evaluation requires valid, comparable predictor definitions. No such three-source feature set can be established from the available codebooks/data."

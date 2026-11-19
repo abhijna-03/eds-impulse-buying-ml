@@ -1,0 +1,15 @@
+source_dataset,feature,decision,reason
+google_forms_survey,Timestamp,excluded,Response timestamp is not an intended behavioral predictor.
+google_forms_survey,"Before seeing the product/offer, had you already planned to buy it?",excluded,This response defines impulse_target.
+google_forms_survey,"After buying the product, how much did you feel it was unnecessary?",excluded,Post-purchase assessment is unavailable at prediction time.
+social_media_buying,impulse_purchase,excluded,This column defines impulse_target.
+social_media_buying,All remaining supplied predictors,retained in extended experiment; ablated in sensitivity check,No predictor is an exact binary target copy in observed data. Timing and data-generation provenance are unavailable; sensitivity analysis separately excludes the four most target-associated ad/influence measures.
+psychological_drivers,IB1,excluded,Item is used to calculate impulse_target.
+psychological_drivers,IB2,excluded,Item is used to calculate impulse_target.
+psychological_drivers,IB3,excluded,Item is used to calculate impulse_target.
+psychological_drivers,IB4,excluded,Item is used to calculate impulse_target.
+psychological_drivers,IG1,excluded,IG items measure gratification after an impulsive purchase and are not appropriate for prospective prediction.
+psychological_drivers,IG2,excluded,IG items measure gratification after an impulsive purchase and are not appropriate for prospective prediction.
+psychological_drivers,IG3,excluded,IG items measure gratification after an impulsive purchase and are not appropriate for prospective prediction.
+psychological_drivers,IG4,excluded,IG items measure gratification after an impulsive purchase and are not appropriate for prospective prediction.
+psychological_drivers,Other documented requested predictors,retained in extended experiment,Allowed demographic and construct items are retained; coded demographic fields are categorical because no codebook was found.

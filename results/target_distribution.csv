@@ -1,0 +1,4 @@
+source_dataset,input_rows,target_columns,valid_target_rows,removed_missing_or_invalid_target_rows,removal_reason,valid_class_0,valid_class_1
+google_forms_survey,108,"Before seeing the product/offer, had you already planned to buy it?",108,0,,41,67
+social_media_buying,500,impulse_purchase,500,0,,330,170
+psychological_drivers,589,IB1; IB2; IB3; IB4,589,0,,406,183
